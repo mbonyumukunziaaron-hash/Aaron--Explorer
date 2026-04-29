@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>X Rwandan Museum - Puzzle Game</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inknut+Antiqua:wght@400;700;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rw-red: #20603D;
+    --rw-yellow: #FAD201;
+    --rw-blue: #00A1DE;
+    --rw-dark: #0f172a; 
+    --rw-gold: #C8972B;
+    --rw-glass: rgba(255, 255, 255, 0.05);
+    font-family: 'Nunito', sans-serif;
+  }
+
+  body {
+    background: var(--rw-dark);
+    min-height: 100vh;
+    color: white;
+    /* Modern gradient background */
+    background-image: 
+      radial-gradient(circle at 10% 20%, rgba(0, 161, 222, 0.1) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(32, 96, 61, 0.1) 0%, transparent 40%);
+    margin: 0;
+  }
+
+  /* Modern Instagram-style Glass Panels */
+  .figure-info, .preview-card, .win-card, .score-bar {
+    background: var(--rw-glass) !important;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 20px;
+  }
+
+  .puzzle-grid {
+    background: rgba(0, 0, 0, 0.5) !important;
+    border: 3px solid var(--rw-gold) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-radius: 15px;
+    overflow: hidden;
+  }
+
+  .btn-primary {
+    background: linear-gradient(45deg, #C8972B, #FAD201) !important;
+    color: #000 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 4px 15px rgba(200, 151, 43, 0.3);
+    transition: transform 0.2s;
+  }
+
+  .btn-primary:active { transform: scale(0.95); }
+
+  /* Smooth Piece Animations */
+  .puzzle-piece {
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  }
+
+  /* Existing Structural CSS */
+  * { box-sizing: border-box; }
+  .app { max-width: 900px; margin: 0 auto; padding: 20px; }
+  .header { text-align: center; padding: 20px 0; }
+  .museum-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(200,151,43,0.1); border: 1px solid var(--rw-gold); border-radius: 50px; padding: 5px 15px; margin-bottom: 15px; }
+  .museum-badge span { color: var(--rw-gold); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  h1 { font-family: 'Inknut Antiqua', serif; font-size: clamp(20px, 6vw, 32px); color: var(--rw-gold); margin: 0; }
+  .score-bar { display: flex; justify-content: space-around; padding: 15px; margin-bottom: 25px; }
+  .score-item .val { font-size: 22px; font-weight: 800; color: var(--rw-gold); display: block; }
+  .score-item .lbl { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+  
+  .figures-track { display: flex; gap: 10px; justify-content: center; margin-bottom: 25px; overflow-x: auto; padding-bottom: 5px; }
+  .fig-dot { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-weight: 800; cursor: pointer; transition: 0.3s; }
+  .fig-dot.current { border-color: var(--rw-blue); box-shadow: 0 0 10px var(--rw-blue); }
+  .fig-dot.unlocked { background: var(--rw-gold); color: #000; border-color: var(--rw-gold); }
+
+  .main-panel { display: grid; grid-template-columns: 1fr 280px; gap: 25px; }
+  @media (max-width: 768px) { .main-panel { grid-template-columns: 1fr; } }
+  
+  .puzzle-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 100%; aspect-ratio: 1; max-width: 400px; margin: 0 auto; }
+  .puzzle-piece { position: relative; cursor: pointer; border-radius: 8px; overflow: hidden; background: #1e293b; }
+  .piece-number { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.6); color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+
+  .preview-img { width: 100%; border-radius: 12px; margin-bottom: 15px; border: 2px solid rgba(255,255,255,0.1); }
+  .win-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .win-card { padding: 30px; text-align: center; max-width: 450px; }
+  .win-img { width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 4px solid var(--rw-gold); margin-bottom: 15px; }
+  
+  .btn { padding: 12px 24px; border-radius: 50px; border: none; font-weight: 700; cursor: pointer; text-transform: uppercase; font-size: 12px; }
+  .btn-secondary { background: rgba(255,255,255,0.1); color: white; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="app">
+    <div class="header">
+      <div class="museum-badge"><span>🏛️ X Rwandan Museum</span></div>
+      <h1>{{ t('title') }}</h1>
+      <div class="lang-btns" style="margin-top:15px; display: flex; justify-content: center; gap: 10px;">
+        <button class="btn-secondary btn" @click="lang='en'" :style="lang=='en' ? 'background:white; color:black':''">EN</button>
+        <button class="btn-secondary btn" @click="lang='rw'" :style="lang=='rw' ? 'background:white; color:black':''">RW</button>
+      </div>
+    </div>
+
+    <div v-if="screen==='intro'" style="text-align:center; padding: 50px 0;">
+      <h2 style="font-family: 'Inknut Antiqua'; margin-bottom: 20px;">{{ t('welcome') }}</h2>
+      <button class="btn btn-primary" style="padding: 18px 50px; font-size: 16px;" @click="startGame">{{ t('start') }}</button>
+    </div>
+
+    <div v-if="screen==='game'">
+      <div class="score-bar">
+        <div class="score-item"><span class="val">{{ totalScore }}</span><span class="lbl">{{ t('score') }}</span></div>
+        <div class="score-item"><span class="val">{{ moveCount }}</span><span class="lbl">{{ t('moves') }}</span></div>
+      </div>
+
+      <div class="figures-track">
+        <div v-for="(fig, i) in figures" :key="i" class="fig-dot" 
+             :class="{unlocked: unlockedFigures.includes(i), current: currentFigureIndex === i}">
+          {{ unlockedFigures.includes(i) ? '✓' : (i+1) }}
+        </div>
+      </div>
+
+      <div class="main-panel">
+        <div class="puzzle-area">
+            <div class="figure-info" style="padding: 15px; margin-bottom: 15px; text-align: center;">
+                <h3 style="margin:0; color: var(--rw-gold);">{{ currentFigure.name }}</h3>
+                <small style="opacity: 0.6;">{{ currentFigure.years }}</small>
+            </div>
+            <div class="puzzle-grid">
+                <div v-for="(cell, idx) in board" :key="idx" class="puzzle-piece" 
+                     :class="{empty: cell === 0}" @click="clickPiece(idx)">
+                  <template v-if="cell !== 0">
+                    <div :style="getPieceBgStyle(cell)"></div>
+                    <div class="piece-number">{{ cell }}</div>
+                  </template>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+                <button class="btn btn-secondary" @click="resetPuzzle">🔄 {{ t('try_again') }}</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+          <div class="preview-card" style="padding: 20px;">
+            <h4 style="margin-top:0; font-size: 12px; letter-spacing: 1px; opacity: 0.5;">{{ t('target') }}</h4>
+            <img :src="currentFigure.image" class="preview-img" />
+            <button class="btn btn-secondary" style="width:100%" @click="screen='intro'">🏠 {{ t('home') }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="screen==='win'" class="win-overlay">
+      <div class="win-card">
+        <h2 class="win-title" style="color:var(--rw-gold); font-family:'Inknut Antiqua';">{{ t('congratulations') }}</h2>
+        <img :src="currentFigure.image" class="win-img" />
+        <h3 style="margin:10px 0;">{{ currentFigure.name }}</h3>
+        <p style="font-size:14px; opacity: 0.8; margin-bottom: 25px;">{{ currentFigure[lang].info }}</p>
+        <button class="btn btn-primary" @click="nextPuzzle" v-if="currentFigureIndex < figures.length - 1">{{ t('next_figure') }}</button>
+        <button class="btn btn-secondary" @click="screen='intro'" v-else>{{ t('home') }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, computed } = Vue;
+
+const FIGURES = [
+  {
+    id: 0,
+    name: "Kigeli IV Rwabugiri",
+    years: "1840 – 1895",
+    image: "https://upload.wikimedia.org/wikipedia/commons/6/68/Mwami_Kigeri_IV_Rwabugiri.jpg",
+    en: { info: "Rwabugiri was the first king in Rwanda's history to come into contact with Europeans. He expanded Rwanda's borders significantly." },
+    rw: { info: "Mwami Rwabugiri niwe mwami wa mbere mu mateka y'u Rwanda wahuye n'abazungu. Yaguye imbibi z'u Rwanda cyane." }
+  },
+  {
+    id: 1,
+    name: "Yuhi V Musinga",
+    years: "1883 – 1944",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Musinga.jpg/400px-Musinga.jpg",
+    en: { info: "He led Rwanda during the transition from German to Belgian colonial rule and resisted cultural erosion." },
+    rw: { info: "Yayoboye u Rwanda mu gihe cy'ubukolonize bw'Abadage n'Ababeligi, arinda umuco w'u Rwanda." }
+  },
+  {
+    id: 2,
+    name: "Mutara III Rudahigwa",
+    years: "1911 – 1959",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mutara_III_Rudahigwa.jpg/400px-Mutara_III_Rudahigwa.jpg",
+    en: { info: "The first Rwandan King to be baptized. He abolished the 'Ubuhake' system and advocated for education." },
+    rw: { info: "Umwami wa mbere w'u Rwanda wabatijwe. Yakuyeho ubuhake kandi ateza imbere uburezi." }
+  },
+  {
+    id: 3,
+    name: "Kigeli V Ndahindurwa",
+    years: "1936 – 2016",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/King_Kigeli_V.jpg/400px-King_Kigeli_V.jpg",
+    en: { info: "The last reigning monarch of Rwanda. He was known for his efforts to help Rwandan refugees." },
+    rw: { info: "Umwami wa nyuma w'u Rwanda. Yamenyekanye cyane mu gufasha impunzi z'abanyarwanda." }
+  }
+  {
+    id: 4,
+    name: "Kagame Paul",
+    years: "1959 – Present ",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/King_Kigeli_V.jpg/400px-King_Kigeli_V.jpg",
+    en: { info: "The former leaderr of Rwanda and Chairman of FPR." },
+    rw: { info: "Umukuru wigihugu uriho ubungubu akaba numuyobozi wa fpr ." }
+  }
+  {
+    id: 5,
+    name: "Uwiringiyimana Agatha ",
+    years: "1936 – 1994 ",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/King_Kigeli_V.jpg/400px-King_Kigeli_V.jpg",
+    en: { info: "she fought for right of tutsi during genocide against tutsi and also genocide." },
+    rw: { info: "Yarwanyije iyicwa ryabatutsi muri 1994 ." }
+  }
+];
+
+const I18N = {
+  en: { title: "Rwanda Heroes Puzzle", welcome: "Museum Challenge", start: "Start Journey", score: "Score", moves: "Moves", try_again: "Reset", home: "Menu", target: "Target Image", congratulations: "Victory!", next_figure: "Next Level" },
+  rw: { title: "Umukino w'Intwari", welcome: "Ikaze mu Nzu Ndangamurage", start: "Tangira", score: "Amanota", moves: "Intambwe", try_again: "Subiramo", home: "Ahabanza", target: "Icyerekezo", congratulations: "Watsinze!", next_figure: "Komeza" }
+};
+
+createApp({
+  setup() {
+    const lang = ref('en');
+    const screen = ref('intro');
+    const currentFigureIndex = ref(0);
+    const board = ref([]);
+    const unlockedFigures = ref([0]);
+    const totalScore = ref(0);
+    const moveCount = ref(0);
+
+    const figures = FIGURES;
+    const currentFigure = computed(() => figures[currentFigureIndex.value]);
+    const t = (key) => I18N[lang.value][key];
+
+    function generateBoard() {
+      let tiles = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+      // Simple shuffle
+      for (let i = tiles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+      }
+      board.value = tiles;
+      moveCount.value = 0;
+    }
+
+    function clickPiece(idx) {
+      const e = board.value.indexOf(0);
+      const neighbors = [idx-1, idx+1, idx-3, idx+3];
+      if (neighbors.includes(e)) {
+        [board.value[idx], board.value[e]] = [board.value[e], board.value[idx]];
+        moveCount.value++;
+        checkWin();
+      }
+    }
+
+    function checkWin() {
+      const win = board.value.every((v, i) => i === 8 ? v === 0 : v === i + 1);
+      if (win) {
+        totalScore.value += 100;
+        setTimeout(() => screen.value = 'win', 500);
+      }
+    }
+
+    function getPieceBgStyle(pieceNum) {
+      const pos = pieceNum - 1;
+      return {
+        backgroundImage: `url('${currentFigure.value.image}')`,
+        backgroundSize: '300% 300%',
+        backgroundPosition: `${(pos % 3) * 50}% ${Math.floor(pos / 3) * 50}%`,
+        width: '100%', height: '100%'
+      };
+    }
+
+    function startGame() { generateBoard(); screen.value = 'game'; }
+    function resetPuzzle() { generateBoard(); }
+    function nextPuzzle() { currentFigureIndex.value++; generateBoard(); screen.value = 'game'; }
+
+    return { lang, screen, figures, currentFigure, currentFigureIndex, board, unlockedFigures, totalScore, moveCount, t, clickPiece, getPieceBgStyle, startGame, resetPuzzle, nextPuzzle };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
