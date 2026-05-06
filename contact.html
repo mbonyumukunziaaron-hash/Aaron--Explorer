@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Me</title>
+    <style>
+        .contact-form { max-width: 600px; margin: 50px auto; text-align: left; padding: 20px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #00bfff; }
+        input, textarea { width: 100%; padding: 12px; background: #161b22; border: 1px solid #175ba9; color: rgb(255, 255, 255); border-radius: 8px; }
+        .submit-btn { background: #00bfff; color: #000; width: 100%; padding: 14px; border: none; border-radius: 50px; font-weight: 700; cursor: pointer; }
+  *{background-color: #000000; color: #ffffff; font-family: 'Segoe UI', sans-serif; text-align: left;}  
+    </style>
+</head>
+<body>
+    <!-- Navbar same as above -->
+    <div class="contact-form">
+        <h1>Get In <span>Touch</span></h1>
+        <div class="divider"></div>
+        <form>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" placeholder="Your Name">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label>Message</label>
+                <textarea rows="5" placeholder="How can I help you?"></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Send Message</button>
+        </form>
+    </div>
+</body>
+</html>
